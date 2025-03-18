@@ -1,12 +1,44 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-import pandas as pd
 import time
 
 
 # Initialize the WebDriver
 driver = webdriver.Chrome()
+
+# Function to get article URLs from a page
+def get_article_urls(page_number):
+    driver.get(f"https://telex.hu/legfrissebb?oldal={page_number}")
+
+    info_divs = driver.find_elements(By.CLASS_NAME, 'list__item__info')
+
+    articles = []
+
+    for info_div in info_divs:
+        article_link = info_div.find_element(By.TAG_NAME, 'a')
+        date = info_div.find_element(By.CLASS_NAME, 'article_date').find_element(By.TAG_NAME, 'span').text
+
+        if 'január' in date:
+            articles.append(article_link.get_attribute('href'))
+
+    return articles
+
+# Function to get all article URLs
+def get_all_articles():
+    page_number = 330
+    all_articles = []
+
+    while True:
+        articles = get_article_urls(page_number)
+        all_articles.extend(articles)
+        page_number += 1
+
+        if page_number==529:
+            break
+
+    with open('../data/article_urls_4.txt', 'w') as file:
+        file.write('\n'.join(all_articles))
+
 
 # Function to fetch article data
 def fetch_article_data(url):
@@ -41,11 +73,6 @@ def fetch_article_data(url):
 
 # Example URL
 url = 'https://telex.hu/belfold/2025/03/04/oktatas-iskolak-gerincvedo-szek-valtozas-vasarlas-julius-1'
-
-# Fetch and store the article data
-article_data = fetch_article_data(url)
-print(article_data)
-
 
 # Close the WebDriver
 driver.quit()
