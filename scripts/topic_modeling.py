@@ -12,13 +12,6 @@ nlp=Hungarian()
 hu = spacy.load('hu_core_news_lg')
 stopwords = hu.Defaults.stop_words
 
-article_data_test = {'title': 'Változás az iskolákban: érkeznek a gerincvédő székek',
-                'author': 'Nagy Bálint',
-                'tags': ['BELFÖLD'],
-                'facebook_activity': '600',
-                'article_text': 'Változás lép életbe az iskolákban július 1-től: új iskolai szék vásárlásakor már csak gerincvédő székeket lehet beszerezni – írja a Magyar Nemzet az Országos Gerincgyógyászat Központ közleménye alapján. Az erről szóló tájékoztatást a Belügyminisztérium és az Oktatási Hivatal elküldte az iskolafenntartóknak és igazgatóknak is. Azt írták, hogy a tanulók egészségének védelme népegészségügyi, pedagógiai és össztársadalmi cél, a sok ülés miatt pedig fontos, hogy a szék segítse a helyes ülést.  A minisztérium ezzel az Országos Gerincgyógyászati Központ kezdeményezését támogatja. Ajánlásuk alapján azt kérik, hogy amikor tanulói székeket vásárolnak az iskoláknak, az Oktatási Hivatal honlapján az oktatási intézmények kötelező felszereléseiről szóló módosított jegyzékben közzétett új méreteknek megfelelő, gerincvédelmet biztosító tanulói székeket szerezzék be. A döntésről a Magyar Nemzetnek Somhegyi Annamária reumatológus azt mondta: ezzel a lépéssel közelebb kerültünk ahhoz, hogy a hazánkat is sújtó porckopásos gerincbetegségeket visszaszorítsuk. „Azért fontos, hogy a gyerekek gerincvédő székeken üljenek, mert így a derekukat a szék támlája meg tudja támasztani, ez pedig az ülés által a porckorongokra gyakorolt többletnyomást csökkenti. Ha mozgásszervi szakember vizsgálja meg az iskolások gerincét, akár 80 százalékuknál is eltérést talál, s ennek túlnyomó részét szintén a tartási rendellenességek képezik” – fogalmazott.'
-}
-
 article_data = [{'title': 'Változás az iskolákban: érkeznek a gerincvédő székek',
                 'author': 'Nagy Bálint',
                 'tags': ['BELFÖLD'],
@@ -47,21 +40,27 @@ def preprocess(word_list):
             result.append(token)
     return result
 
-processed_docs = [preprocess(hu(article_data_test['article_text']))] # [preprocess(elem) for elem in token_docs]
-print(processed_docs)
-
 # Step 1: Group tokenized texts by topic (tag)
 topic_docs = defaultdict(list)
+topic_fb_activity = defaultdict(int)
 for doc in article_data:
     if doc['tags']:  # Ensure tag exists
         topic = doc['tags'][0]  # Use first tag as topic
-        # text = doc['article_text'].lower().split()  # Simple tokenization
         text = preprocess(hu(doc['article_text']))
         topic_docs[topic].append(text)
+        # Sum up facebook activity (safely handle non-int)
+        try:
+            topic_fb_activity[topic] += int(doc['facebook_activity'])
+        except ValueError:
+            pass
 
-# Step 2: Generate word frequencies for each topic
+# Step 2: Sort topics by total Facebook activity (descending)
+sorted_topics = sorted(topic_fb_activity.items(), key=lambda x: x[1], reverse=True)
+
+# Step 3: Generate word frequencies for each topic
 topic_wordclouds = {}
-for topic, tokenized_docs in topic_docs.items():
+for topic, _ in sorted_topics:
+    tokenized_docs = topic_docs[topic]
     dictionary = Dictionary(tokenized_docs)
     bow_corpus = [dictionary.doc2bow(doc) for doc in tokenized_docs]
 
@@ -81,7 +80,7 @@ for topic, tokenized_docs in topic_docs.items():
 
     topic_wordclouds[topic] = wordcloud
 
-# Step 3: Plot all word clouds on one page
+# Step 4: Plot all word clouds on one page
 num_topics = len(topic_wordclouds)
 cols = 2
 rows = math.ceil(num_topics / cols)
@@ -90,8 +89,9 @@ fig, axes = plt.subplots(rows, cols, figsize=(14, 6 * rows))
 axes = axes.flatten() if num_topics > 1 else [axes]
 
 for i, (topic, wc) in enumerate(topic_wordclouds.items()):
+    fb_total = topic_fb_activity[topic]
     axes[i].imshow(wc, interpolation='bilinear')
-    axes[i].set_title(f'Topic: {topic}', fontsize=16)
+    axes[i].set_title(f"Topic: {topic} (Facebook activity: {fb_total})", fontsize=14)
     axes[i].axis('off')
 
 # Turn off any empty subplots
