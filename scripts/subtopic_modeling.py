@@ -1,7 +1,9 @@
 import gensim
 from gensim.corpora import Dictionary
+from gensim.models import LdaModel
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from collections import defaultdict
 import math
 import spacy
@@ -38,6 +40,7 @@ article_data = [{'title': 'Változás az iskolákban: érkeznek a gerincvédő s
                 }
 ]
 
+# Preprocessing function
 def preprocess(word_list):
     result = []
     for token in word_list:
@@ -48,61 +51,48 @@ def preprocess(word_list):
 
 # Step 1: Group tokenized texts by topic (tag)
 topic_docs = defaultdict(list)
-topic_fb_activity = defaultdict(int)
 for doc in article_data:
     if doc['tags']:  # Ensure tag exists
         topic = doc['tags'][0]  # Use first tag as topic
         text = preprocess(hu(doc['article_text']))
         topic_docs[topic].append(text)
-        # Sum up facebook activity (safely handle non-int)
-        try:
-            topic_fb_activity[topic] += int(doc['facebook_activity'])
-        except ValueError:
-            pass
 
-# Step 2: Sort topics by total Facebook activity (descending)
-sorted_topics = sorted(topic_fb_activity.items(), key=lambda x: x[1], reverse=True)
+# Function to generate a fixed color function for a specific color
+def fixed_color_func(color):
+    def color_func(*args, **kwargs):
+        return color
+    return color_func
 
-# Step 3: Generate word frequencies for each topic
-topic_wordclouds = {}
-for topic, _ in sorted_topics:
-    tokenized_docs = topic_docs[topic]
-    dictionary = Dictionary(tokenized_docs)
-    bow_corpus = [dictionary.doc2bow(doc) for doc in tokenized_docs]
+# Defining a list of distinct colors
+colors = ['#FFA500', '#A9A9A9', '#FF6347', '#1E90FF', '#FF66CC', '#3CB371']
 
-    word_freq = {}
-    for doc in bow_corpus:
-        for word_id, freq in doc:
-            word = dictionary[word_id]
-            word_freq[word] = word_freq.get(word, 0) + freq
+# Step 2: Run LDA for each topic and plot
+for topic, docs in topic_docs.items():
+    if len(docs) < 2:
+        continue  # Not enough data for LDA
 
-    # Generate WordCloud object (but don't show it yet)
-    wordcloud = WordCloud(
-        width=800,
-        height=400,
-        background_color='white',
-        colormap='viridis'
-    ).generate_from_frequencies(word_freq)
+    # Prepare corpus
+    dictionary = Dictionary(docs)
+    corpus = [dictionary.doc2bow(doc) for doc in docs]
 
-    topic_wordclouds[topic] = wordcloud
+    # Train LDA
+    num_topics = 6
+    lda = LdaModel(corpus, num_topics=num_topics, id2word=dictionary, passes=10, random_state=42)
 
-# Step 4: Plot all word clouds on one page
-num_topics = len(topic_wordclouds)
-cols = 2
-rows = math.ceil(num_topics / cols)
+    # Plot each topic's word clouds
+    fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+    fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=16)
+    axes = axes.flatten()
 
-fig, axes = plt.subplots(rows, cols, figsize=(14, 6 * rows))
-axes = axes.flatten() if num_topics > 1 else [axes]
+    for i in range(num_topics):
+        terms = lda.show_topic(i, topn=30)
+        word_freq = {term: weight for term, weight in terms}
+        color_func = fixed_color_func(colors[i % len(colors)])
+        wc = WordCloud(width=500, height=400, background_color='white', color_func=color_func).generate_from_frequencies(word_freq)
 
-for i, (topic, wc) in enumerate(topic_wordclouds.items()):
-    fb_total = topic_fb_activity[topic]
-    axes[i].imshow(wc, interpolation='bilinear')
-    axes[i].set_title(f"Topic #{i+1}: {topic} (Facebook activity: {fb_total})", fontsize=16)
-    axes[i].axis('off')
+        axes[i].imshow(wc, interpolation='bilinear')
+        axes[i].set_title(f'Subtopic {i+1}', fontsize=14)
+        axes[i].axis('off')
 
-# Turn off any empty subplots
-for j in range(i + 1, len(axes)):
-    axes[j].axis('off')
-
-plt.tight_layout()
-plt.show()
+    plt.subplots_adjust(wspace=0.4, hspace=0.4, top=0.9)
+    plt.show()
