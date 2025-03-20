@@ -12,7 +12,7 @@ nlp=Hungarian()
 hu = spacy.load('hu_core_news_lg')
 stopwords = hu.Defaults.stop_words
 
-article_data = {'title': 'Változás az iskolákban: érkeznek a gerincvédő székek',
+article_data_test = {'title': 'Változás az iskolákban: érkeznek a gerincvédő székek',
                 'author': 'Nagy Bálint',
                 'tags': ['BELFÖLD'],
                 'facebook_activity': '600',
@@ -39,8 +39,6 @@ article_data2 = [{'title': 'Változás az iskolákban: érkeznek a gerincvédő 
                 }
 ]
 
-doc2 = hu(article_data['article_text'])
-
 def preprocess(word_list):
     result = []
     for token in word_list:
@@ -49,11 +47,10 @@ def preprocess(word_list):
             result.append(token)
     return result
 
-processed_docs = [preprocess(doc2)] # [preprocess(elem) for elem in token_docs]
-
+processed_docs = [preprocess(hu(article_data_test['article_text']))] # [preprocess(elem) for elem in token_docs]
 print(processed_docs)
 
-article_data['article_text'] = [preprocess(doc2)]
+article_data_test['article_text'] = [preprocess(hu(article_data_test['article_text']))]
 
 dictionary = gensim.corpora.Dictionary(processed_docs)
 print(dictionary)
