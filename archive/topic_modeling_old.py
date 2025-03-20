@@ -52,6 +52,7 @@ print(processed_docs)
 
 article_data_test['article_text'] = [preprocess(hu(article_data_test['article_text']))]
 
+
 dictionary = gensim.corpora.Dictionary(processed_docs)
 print(dictionary)
 bow_corpus = [dictionary.doc2bow(doc) for doc in processed_docs]
