@@ -4,8 +4,9 @@ from gensim.models import LdaModel
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from collections import defaultdict
+from collections import defaultdict, Counter
 import math
+import numpy as np
 import spacy
 from spacy.lang.hu.stop_words import STOP_WORDS
 from spacy.lang.hu import Hungarian
@@ -22,7 +23,7 @@ article_data = [{'title': 'Változás az iskolákban: érkeznek a gerincvédő s
                 },
                 {'title': 'Némítást, fideszes-tiszás szócsatát is hozott a közösségi médiáról szóló EP-vita',
                 'author': 'Márton Balázs',
-                'tags': ['KÜLFÖLD'],
+                'tags': ['KÜLFÖLD', 'GAZDASÁG'],
                 'facebook_activity': '1205',
                 'article_text': 'A demokráciák egyre nagyobb kihívással néznek szembe a külföldi beavatkozás miatt, például amit Ukrajna ellen láttak Oroszországtól a Facebookon és az Instagramon vagy a román elnökválasztásnál a TikTokon, figyelmeztetett Henna Virkkunen kedden. A technológiai önrendelkezésért felelős uniós biztos az Európai Parlamentben (EP-ben) úgy vélte, az EU-é a legerősebb jogi keret a közösségi oldalakról. A digitális szolgáltatásokról szóló rendelet (DSA) világos kötelezettségeket szab rájuk, fel kell mérniük a kockázatokat és átláthatónak kell lenniük. Hangsúlyozta, hogy a jogszabály nem cenzúrázza a tartalmakat, csak azt, ami offline is jogellenes, például a gyűlöletbeszédet, az így megjelölt tartalmakat 24 órán belül meg kell vizsgálni és ha kell, eltávolítani. A Donald Trumphoz közel álló Elon Musk felkavarta az indulatokat az EP-ben, mióta elkezdett élénken foglalkozni az európai politikával. A testület első 2025-ös ülésére baloldali frakciók kezdeményeztek vitát a közösségi oldalakról és a DSA betartatásáról, míg túlnyomórészt jobboldali képviselők meghívnák Muskot az EP-be, a fideszesek frakciója pedig azt vizsgálná, mit cenzúrázott az épp a Musk-féle X moderációs módszeréhez igazodó Facebook.  Az X tulajdonosa a szélsőjobb hangosbemondója lett a szocialisták frakcióvezetője, Iratxe García Pérez szerint, aki azt kérdezte Virkkunentől, mit tesz az Európai Bizottság a „digitális oligarchák” ellen. A szólásszabadság nem jelenti az álhírek terjesztésének szabadságát, a történelem megmutatta már a propaganda terjedésének veszélyeit. A Metát vezető Mark Zuckerbergék sem állnak a jog felett, figyelmeztetett a többek között DK-s képviselők EP-frakcióját elnöklő politikus. Az a gyanúm, a baloldal minden szinten kezd beleőrülni, hogy elveszítette a „fojtogató ellenőrzést” a politikai vita felett a közösségi médiában, jelentette ki az euroszkeptikus ECR frakcióból Nicola Procaccini. Úgy gondolták, nem helyes, hogy az X leállította Trump fiókját, Ali Hámeneiét (Iráni legfelső vallási vezetőjét) viszont nem. A hangulatot mutatja, hogy Milan Uhrikkal a (Mi Hazánkat is sorai közt tudó) Szuverén Nemzetek Európájából a beszéde elején összeszólalkozott több képviselő, arra kérte őket, fogják be, mire megvonták tőle a szót. A független Fidiasz Panajotu azt javasolta, hívják meg Muskot és Zuckerberget az EP-be, bár a youtuberből lett képviselő egy kérdésre elismerte, ő személyesen nem találkozott cenzúrával. Zuckerberg vallomást tett, cenzúrázott a demokrata kormány nyomására, de hiába akartak erről vitát, ezt a néppártiak és baloldaliak megakadályozták, jelentette ki Dömötör Csaba. Az Egyesült Államokban elküldik a tényellenőröket, utalt a Meta megváltoztatott moderációs szabályaira, míg az EU-ban nem, és „a cenzúra lehetőségét további jogszabályokba öntenék”. A szintén fideszes Schaller-Baross Ernő úgy vélte, a DSA a mostani formájában politikai cenzúra eszközeként is szolgálhat, ebben a formában meg kell szüntetni és biztosítani a szabad véleménynyilvánítást. A szólásszabadság alapvető jog, de ne mossuk össze az esetleges hamis és félrevezető tartalmak felhangosításával, terjesztésével, hangsúlyozta Dávid Dóra. A Tisza képviselője ezért tartotta aggasztónak, hogy – legutóbb a Metánál – megszüntetik a tényellenőrzést, ami nem cenzúra, Zuckerberg pedig beismerte, hogy így kevesebb rossz dolgot tudnak kiszűrni. A tényellenőrzés megszüntetése károkat okoz a demokráciának, ez különösen aggasztó az olyan országokban, ahol a média nagy részét a kormány irányítja, és rendszeresen félrevezeti közönségét, mint Magyarországon.  László András fideszes képviselő felvetette, hogy Dávidnak a Facebook „vezető jogászaként” „pontosan tudnia kellett arról, mi történik”. Arról kérdezte, „hogyan működtette a Facebook a cenzúragépezetet”, valamint hogyan lehet megtudni, ez kit és mit érintett. Dávid szerint ezt a Metától kell megkérdezni, mert nem vezető jogász volt (a tiszás képviselőcastingra feltöltött önéletrajza szerint jogtanácsosként dolgozott a Metánál 2020-tól), és azzal válaszolt, hogy a kormányközeli sajtótermékek több száz helyreigazítási pert veszítettek el, az ügyek közel kétharmadában elmarasztalták ezeket. Címlapkép: Alexis Haulot / Európai Parlament / Európai Unió'
                 },
@@ -53,9 +54,10 @@ def preprocess(word_list):
 topic_docs = defaultdict(list)
 for doc in article_data:
     if doc['tags']:  # Ensure tag exists
-        topic = doc['tags'][0]  # Use first tag as topic
+        #topic = doc['tags'][0]  # Use first tag as topic
         text = preprocess(hu(doc['article_text']))
-        topic_docs[topic].append(text)
+        for tag in doc['tags']:
+            topic_docs[tag].append(text)
 
 # Function to generate a fixed color function for a specific color
 def fixed_color_func(color):
@@ -65,6 +67,10 @@ def fixed_color_func(color):
 
 # Defining a list of distinct colors
 colors = ['#FFA500', '#A9A9A9', '#FF6347', '#1E90FF', '#FF66CC', '#3CB371']
+
+# Store LDA models and dictionaries for classification
+lda_models = {}
+dictionaries = {}
 
 # Step 2: Run LDA for each topic and plot
 for topic, docs in topic_docs.items():
@@ -78,6 +84,10 @@ for topic, docs in topic_docs.items():
     # Train LDA
     num_topics = 6
     lda = LdaModel(corpus, num_topics=num_topics, id2word=dictionary, passes=10, random_state=42)
+    
+    # Store model and dictionary for later classification
+    lda_models[topic] = lda
+    dictionaries[topic] = dictionary
 
     # Plot each topic's word clouds
     fig, axes = plt.subplots(2, 3, figsize=(20, 12))
@@ -94,5 +104,68 @@ for topic, docs in topic_docs.items():
         axes[i].set_title(f'Subtopic {i+1}', fontsize=14)
         axes[i].axis('off')
 
+    plt.subplots_adjust(wspace=0.4, hspace=0.4, top=0.9)
+    plt.show()
+
+
+# Example new articles to classify
+new_articles = [
+    {
+        'title': 'New Cikk 1',
+        'tags': ['BELFÖLD'],
+        'facebook_activity': '1205',
+        'article_text': 'Az új iskolai program nagy sikert aratott...'
+    },
+    {
+        'title': 'New Cikk 2',
+        'tags': ['KÜLFÖLD'],
+        'facebook_activity': '1080',
+        'article_text': 'Nemzetközi gazdasági konferenciát tartanak...'
+    }
+]
+
+# Subtopic classification and counting
+subtopic_counts = defaultdict(lambda: Counter())
+subtopic_fb_activity = defaultdict(lambda: defaultdict(int))
+
+for article in new_articles:
+    if article['tags']:
+        topic = article['tags'][0]
+        if topic in lda_models:
+            tokens = preprocess(hu(article['article_text']))
+            dictionary = dictionaries[topic]
+            bow = dictionary.doc2bow(tokens)
+            subtopic, _ = max(lda_models[topic][bow], key=lambda x: x[1])
+            subtopic_counts[topic][subtopic] += 1
+            # Sum up facebook activity (safely handle non-int)
+            try:
+                subtopic_fb_activity[topic][subtopic] += int(article['facebook_activity'])
+            except ValueError:
+                pass
+
+# Print classification results
+for topic, counts in subtopic_counts.items():
+    print(f"Topic: {topic}")
+    for subtopic, count in counts.items():
+        print(f"  Subtopic {subtopic+1}: {count} articles")
+
+# Display word clouds after sorting new articles
+for topic, lda in lda_models.items():
+    fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+    fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=18)
+    axes = axes.flatten()
+    
+    sorted_subtopics = sorted(range(6), key=lambda i: subtopic_fb_activity[topic][i], reverse=True)
+    
+    for idx, i in enumerate(sorted_subtopics):
+        terms = lda.show_topic(i, topn=30)
+        word_freq = {term: weight for term, weight in terms}
+        color_func = fixed_color_func(colors[idx % len(colors)])
+        wc = WordCloud(width=500, height=400, background_color='white', color_func=color_func).generate_from_frequencies(word_freq)
+        
+        axes[idx].imshow(wc, interpolation='bilinear')
+        axes[idx].set_title(f'Subtopic {i+1} (Facebook activity: {subtopic_fb_activity[topic][i]}) ({subtopic_counts[topic][i]} articles)', fontsize=14)
+        axes[idx].axis('off')
+    
     plt.subplots_adjust(wspace=0.4, hspace=0.4, top=0.9)
     plt.show()
