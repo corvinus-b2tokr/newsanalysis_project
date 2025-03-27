@@ -59,15 +59,6 @@ for doc in article_data:
         for tag in doc['tags']:
             topic_docs[tag].append(text)
 
-# Function to generate a fixed color function for a specific color
-def fixed_color_func(color):
-    def color_func(*args, **kwargs):
-        return color
-    return color_func
-
-# Defining a list of distinct colors
-colors = ['#FFA500', '#A9A9A9', '#FF6347', '#1E90FF', '#FF66CC', '#3CB371']
-
 # Store LDA models and dictionaries for classification
 lda_models = {}
 dictionaries = {}
@@ -89,42 +80,7 @@ for topic, docs in topic_docs.items():
     lda_models[topic] = lda
     dictionaries[topic] = dictionary
 
-    # Plot each topic's word clouds
-    fig, axes = plt.subplots(2, 3, figsize=(20, 12))
-    fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=16)
-    axes = axes.flatten()
-
-    for i in range(num_topics):
-        terms = lda.show_topic(i, topn=30)
-        word_freq = {term: weight for term, weight in terms}
-        color_func = fixed_color_func(colors[i % len(colors)])
-        wc = WordCloud(width=500, height=400, background_color='white', color_func=color_func).generate_from_frequencies(word_freq)
-
-        axes[i].imshow(wc, interpolation='bilinear')
-        axes[i].set_title(f'Subtopic {i+1}', fontsize=14)
-        axes[i].axis('off')
-
-    plt.subplots_adjust(wspace=0.4, hspace=0.4, top=0.9)
-    plt.show()
-
-
-# Example new articles to classify
-new_articles = [
-    {
-        'title': 'New Cikk 1',
-        'tags': ['BELFÖLD'],
-        'facebook_activity': '1205',
-        'article_text': 'Az új iskolai program nagy sikert aratott...'
-    },
-    {
-        'title': 'New Cikk 2',
-        'tags': ['KÜLFÖLD', 'GAZDASÁG'],
-        'facebook_activity': '1080',
-        'article_text': 'Nemzetközi gazdasági konferenciát tartanak...'
-    }
-]
-
-# Subtopic classification and counting
+# Step 3: Subtopic classification, with counting articles and aggregating facebook activity
 subtopic_counts = defaultdict(lambda: Counter())
 subtopic_fb_activity = defaultdict(lambda: defaultdict(int))
 
@@ -143,16 +99,19 @@ for article in article_data:
                 except ValueError:
                     pass
 
-# Print classification results
-for topic, counts in subtopic_counts.items():
-    print(f"Topic: {topic}")
-    for subtopic, count in counts.items():
-        print(f"  Subtopic {subtopic+1}: {count} articles")
+# Function to generate a fixed color function for a specific color
+def fixed_color_func(color):
+    def color_func(*args, **kwargs):
+        return color
+    return color_func
 
-# Display word clouds after sorting new articles
+# Defining a list of distinct colors
+colors = ['#FFA500', '#A9A9A9', '#FF6347', '#1E90FF', '#FF66CC', '#3CB371']
+
+# Step 4: Displaying word clouds with article classification
 for topic, lda in lda_models.items():
     fig, axes = plt.subplots(2, 3, figsize=(20, 12))
-    fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=18)
+    fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=18, y=0.98)
     axes = axes.flatten()
     
     sorted_subtopics = sorted(range(6), key=lambda i: subtopic_fb_activity[topic][i], reverse=True)
@@ -164,8 +123,9 @@ for topic, lda in lda_models.items():
         wc = WordCloud(width=500, height=400, background_color='white', color_func=color_func).generate_from_frequencies(word_freq)
         
         axes[idx].imshow(wc, interpolation='bilinear')
-        axes[idx].set_title(f'Subtopic {i+1} (Facebook activity: {subtopic_fb_activity[topic][i]}) ({subtopic_counts[topic][i]} articles)', fontsize=14)
+        title_text = (rf"$\bf{{Subtopic\ {i+1}}}$" f"\n(Facebook activity: {subtopic_fb_activity[topic][i]})" f"\n({subtopic_counts[topic][i]} articles)")
+        axes[idx].set_title(title_text, fontsize=12, fontweight='normal', multialignment='center')
         axes[idx].axis('off')
     
-    plt.subplots_adjust(wspace=0.4, hspace=0.4, top=0.9)
+    plt.subplots_adjust(wspace=0.4, hspace=0.4, top=0.85)
     plt.show()
