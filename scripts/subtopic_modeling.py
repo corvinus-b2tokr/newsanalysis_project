@@ -118,7 +118,7 @@ new_articles = [
     },
     {
         'title': 'New Cikk 2',
-        'tags': ['KÜLFÖLD'],
+        'tags': ['KÜLFÖLD', 'GAZDASÁG'],
         'facebook_activity': '1080',
         'article_text': 'Nemzetközi gazdasági konferenciát tartanak...'
     }
@@ -128,20 +128,20 @@ new_articles = [
 subtopic_counts = defaultdict(lambda: Counter())
 subtopic_fb_activity = defaultdict(lambda: defaultdict(int))
 
-for article in new_articles:
+for article in article_data:
     if article['tags']:
-        topic = article['tags'][0]
-        if topic in lda_models:
-            tokens = preprocess(hu(article['article_text']))
-            dictionary = dictionaries[topic]
-            bow = dictionary.doc2bow(tokens)
-            subtopic, _ = max(lda_models[topic][bow], key=lambda x: x[1])
-            subtopic_counts[topic][subtopic] += 1
-            # Sum up facebook activity (safely handle non-int)
-            try:
-                subtopic_fb_activity[topic][subtopic] += int(article['facebook_activity'])
-            except ValueError:
-                pass
+        tokens = preprocess(hu(article['article_text']))
+        for topic in article['tags']:  # Loop through all tags
+            if topic in lda_models:
+                dictionary = dictionaries[topic]
+                bow = dictionary.doc2bow(tokens)
+                subtopic, _ = max(lda_models[topic][bow], key=lambda x: x[1])
+                subtopic_counts[topic][subtopic] += 1
+                # Sum up facebook activity (safely handle non-int)
+                try:
+                    subtopic_fb_activity[topic][subtopic] += int(article['facebook_activity'])
+                except ValueError:
+                    pass
 
 # Print classification results
 for topic, counts in subtopic_counts.items():
