@@ -4,8 +4,9 @@ from gensim.models import LdaModel
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from collections import defaultdict
+from collections import defaultdict, Counter
 import math
+import numpy as np
 import spacy
 from spacy.lang.hu.stop_words import STOP_WORDS
 from spacy.lang.hu import Hungarian
@@ -37,6 +38,30 @@ article_data = [{'title': 'Változás az iskolákban: érkeznek a gerincvédő s
                 'tags': ['KÜLFÖLD'],
                 'facebook_activity': '605',
                 'article_text': 'A dél-koreai Muan repülőtéren december 29-én balesetet szenvedett Jeju Air repülőgép fedélzeti adatrögzítője és a pilótafülke hangrögzítője leállt körülbelül négy perccel a betonfalnak ütközés előtt – írta az MTI a szöuli közlekedési minisztériumra hivatkozva. A hatóságok vizsgálják, hogy mi okozhatta a rögzítő szerkezetek leállását a Dél-Korea területén legsúlyosabb, 179 halálos áldozatot követelő katasztrófa során. A hangrögzítőt először Dél-Koreában elemezték, majd amikor kiderült, hogy az adatok hiányoznak, elküldték az amerikai Nemzeti Közlekedésbiztonsági Hivatal laboratóriumába. A Jeju Air 7C2216-os járata, ami a thaiföldi fővárosból, Bangkokból repült a dél-koreai Muanba, a futómű kiengedése nélkül hasra szállt és túlfutott a regionális repülőtér kifutópályáján, majd egy betonfalnak ütközött és lángba borult. A pilóták úgy négy perccel azt megelőzően, hogy a gép a betonfalnak ütközött, madárbecsapódást és vészhelyzetet jelentettek a toronynak.'
+                },
+                {'title': 'Taxistüntetés: Túl sok a vadász, kevés a fóka',
+                'author': 'Szilágyi Máté',
+                'tags': ['VIDEÓ'],
+                'facebook_activity': '929',
+                'article_text': 'A taxisok azt mondják, hogy a teljes bevételük felét elviszik a taxizás költségei, így a hónap végén átlagosan havi 4-500 ezer forintot visznek haza, ami szerintük kevés. Szerdán Budapesten több százan tüntettek a szabályok megváltoztatásáért, a legfontosabb követelésük az áfamentesség felső határának emelése lenne, jelenleg ugyanis 12 milliós éves bevétel fölött már ÁFÁ-t is kell fizetniük. Nagy Márton nemzetgazdasági miniszter épp kedden jelentette be, hogy ezt a kormány is támogatja, a tüntetés szervezője viszont kevesli a bejelentést, és a konkrét intézkedést várja.'
+                },
+                {'title': 'Megszűnt az Ügyfélkapu, de még mindig nem váltottam. Mi lesz most?',
+                'author': 'Bolcsó Dániel',
+                'tags': ['TECHTUD'],
+                'facebook_activity': '624',
+                'article_text': 'Miután hetek óta azt harsogja minden állami felület és egyre több újságcikk is, hogy január 15-én megszűnik az Ügyfélkapu, végül elérkezett a határidő: január 16-tól az állami ügyintézéshez már valóban nem elég a hagyományos felhasználónév–jelszó páros. Aki ezentúl interneten akar intézkedni, annak most már csak az Ügyfélkapu+ vagy a Digitális Állampolgár mobilalkalmazás marad, amelyek a régi Ügyfélkapunál biztonságosabb bejelentkezési módot kínálnak. Az utolsó napokban sokan váltottak is a kettő közül valamelyik lehetőségekre. De mi lesz azokkal, akik mégis lemaradtak, és a határidő lejártával sincs még sem Ügyfélkapu+-uk, sem DÁP alkalmazásuk? Őket megnyugtatjuk: semmilyen behozhatatlan hátrányba nem kerültek. Aki még nem váltott, a határidő lejárta után is megteheti, és ehhez továbbra sem kell még csak a kormányablakba sem bemennie, ha nem akar. Na de akkor mi volt ez a nagy felhajtás a határidő körül? A bűvös január 15. jelentősége az volt, hogy ügyeket intézni ez után már valóban nem lehet az interneten keresztül Ügyfélkapu+ vagy DÁP nélkül: sima ügyfélkapus belépéssel már egyetlen állami ügyintéző felület nem enged be. Egyet kivéve: magán az ugyfelkapu.gov.hu oldalon továbbra is be lehet jelentkezni pusztán a felhasználónév és a jelszó beírásával, és be lehet állítani az Ügyfélkapu+-t. Másra tehát már nem jó a régi Ügyfélkapu, de a biztonságosabb utódját továbbra is lehet igényelni az interneten keresztül. Digitális állampolgár pedig szintén bármikor lehet bárki, azaz a Digitális Állampolgárság Programhoz is ugyanúgy lehet a határidő után csatlakozni. Már csak a váltásra lehet használni – Forrás: ugyfelkapu.gov.hu Már csak a váltásra lehet használni – Forrás: ugyfelkapu.gov.hu Ezen a ponton érdemes megjegyezni, mert ezzel kapcsolatban sok tévhit keringett: természetesen a kormányablakokba is bemehet továbbra is bárki, akár az internetes ügyintézési lehetőségek beállításában segítséget kérni, akár magukat az ügyeket intézni, ha teljesen ki akarja hagyni a dologból az internetet. A személyes ügyintézés tehát nem szűnik meg, ez a lehetőség is fennmarad azoknak, akik bizalmatlanok az állami online felületekkel szemben, vagy egyszerűen csak járatlanok az internet világában, és nem akarnak vagy nem tudnak online ügyet intézni. A napokban több cikkben is írtunk már a sokakat érintő változásokról, de itt most egyben is összeszedtük, mik a legfontosabb tudnivalók, és melyik új bejelentkezési mód beállításához melyik cikkünkben találnak részletes, pontokban szedett, könnyen követhető segédletet. Ügyfélkapu+: egy plusz biztonsági réteg Az Ügyfélkapu+ lényege, hogy az eddig a sima Ügyfélkapuban használt felhasználónév–jelszó páros mellé a belépéskor pluszban meg kell adni egy hatjegyű számsort is. De ez nem egy állandó kód, amelyet meg lehet jegyezni, aztán újra és újra beírni, hanem minden bejelentkezéskor egy frissen létrehozott számsort kell megadni. Épp ettől biztonságosabb az Ügyfélkapu+, hiszen nincs mit ellopni, egy ilyen kódot hiába szerez meg egy bűnöző, legközelebb már semmire sem megy vele. Ezeket a belépőkódokat többféleképpen is be lehet szerezni egy-egy bejelentkezéskor: Vagy egy kódgeneráló alkalmazás használatával, amelyet a mobiltelefonra kell telepíteni, majd összekötni az Ügyfélkapu+-fiókunkkal, és utána folyamatosan gyártja a megerősítő kódokat – ennek beállítását és mindennapi használatát ebben a cikkünkben mutattuk be lépésről lépésre. Vagy emailbe is kérhetjük a megerősítő kódot, ebben az esetben nincs szükség külön alkalmazásra, sőt mobiltelefonra sem, csak egy emailfiókra, tehát akinek az okostelefon használata nehézséget okoz, esetleg nincs is megfelelő okostelefonja, az az emailes bejelentkezést tudja választani – azt, hogy ezt hogyan tudja beállítani, majd használni a bejelentkezéshez, ebben a cikkünkben vettük végig részletesen. DÁP: egy teljesen új szolgáltatás A Digitális Állampolgárság Program az online ügyintézés új korszakát ígéri: „felhasználóbarát alapokra helyezi a közigazgatást, és megteremti az egyszerű, kényelmes és hatékony ügyintézés feltételeit. Célunk, hogy megkönnyítsük az állampolgárok életét úgy, hogy 2026-ig online, a mobiltelefonjukkal is elintézhessék szinte minden fontosabb, közigazgatást érintő ügyüket”. Tavaly ősszel indult el, és eddig a gyakorlatban a régi Ügyfélkapu másik alternatívája, a QR-kódos bejelentkezés valósult meg belőle: Ha regisztrál a DÁP-ba, a hozzá tartozó Digitális Állampolgár mobilalkalmazással úgy fog tudni minden állami ügyintéző felületre bejelentkezni, hogy felhasználónév és jelszó már egyáltalán nem lesz ehhez szükséges, elég lesz a telefonja kamerájával leolvasni egy kódot, és már bent is van – a regisztráció és az alkalmazás beállításának folyamatát, majd a QR-kódos bejelentkezést ebben a cikkben mutattuk be lépésről lépésre. A DÁP-alkalmazás emellett is jó már néhány egyszerűbb dologra: rendőri ellenőrzésnél lehet vele személyazonosságot igazolni; egy helyen megtalálhatók benne a legfontosabb személyes adatok és igazolványszámok; erkölcsi bizonyítványt lehet vele igényelni; időpont foglalható vele kormányablakokba; illetve már folyik az első fontosabb szolgáltatás, a digitális aláírás fokozatos bevezetése. És hogy mi mindenre lesz még jó? A program a közigazgatás teljes digitalizációját ígéri, sőt elvileg olyan platformként fog működni, amelyhez piaci szereplők is csatlakozhatnak. Érkezik majd a részeként új állami levelezőszolgáltatás és díjfizetési mód, illetve a fizikai okmányok teljes kiváltásának lehetősége. A piaci szolgáltatókat a terv szerint 2025 közepétől kezdik el beengedni, és még idén várható az online autóátírás indulása. Ha ezeknek a változásoknak a háttere is érdekli, tudni szeretné például, hogy milyen uniós kötelezettség miatt van szükség a váltásra; miért nem igazak a pletykák, hogy év végén az Ügyfélkapu+ is megszűnik; illetve hogy akik bizalmatlanok a DÁP-pal, milyen fenntartásaik vagy dilemmáik vannak; itt találja a válaszokat minderre.'
+                },
+                {'title': 'Kaptam egy emailt Friderikusztól, ami nagyon rosszulesett – erős idézetek a Hajdú Péter-interjúból',
+                'author': 'Fábián Tamás',
+                'tags': ['VIDEÓ'],
+                'facebook_activity': '1433',
+                'article_text': 'A Most jövök legújabb adásának vendége Hajdú Péter volt. A műsorvezető-producerrel készült másfél órás beszélgetésből ebben a cikkben több idézetet szöveges formában is kiemeltünk. Az interjúban többször visszatértünk a nagy port kavart, 1,2 millió megtekintésnél tartó Varga Judittal készült beszélgetésére, amiről azt mondta, hogy akkoriban még nem volt ennyire átpolitizált a világ, Magyar Péternek akkor még nem érezte a politikai súlyát, Varga Juditnak pedig már nem. Hajdú azt látta, hogy „Magyar Péter bement a Partizánba, és tolt egy Mónika show-t (…) Én ezt a Mónika show-attitűdöt próbáltam tovább vinni, és teljesen bulvárba elvinni a beszélgetést, miközben utána megkaptam, hogy itt komoly politikai témákat is érinthettem volna.” A műsor felvétele előtt Varga Judit jelezte neki, hogy vannak sms-ei Magyar Pétertől, „mire mondtam neki, hogy nem szeretném, ha ezt itt bemutatnánk”. Arra a kérdésre, hogy miért nem akarta, Hajdú azt válaszolta, hogy „mert nem akartam lemenni kutyába, nem akartam ehhez a Mónika show-hoz asszisztálni”. Utólag azt gondolja, hogy jól járt el ebben az interjúban, és tanult is belőle, de ma már úgy látja, jobb lett volna feltenni politikai kérdéseket is. „Én tényleg úgy éreztem, hogy szkeptikus vagyok, és tényleg azt akartam, hogy győzzön meg Varga Judit, hogy ez nem a férje politikai szárnybontogatásainak az ellehetetlenítése, hanem ő ezeket tényleg átélte. És én tényleg hittem neki, és el is hiszem azt, amit ott mondott. Biztos vagyok benne, hogy nem hazudott. És kurvára nem találkoztam Rogán Antallal, még csak telefonon sem egyeztettem vele” – jegyezte meg. „Az én televíziós és médiakarrieremnek egy nagyon komoly és erős mérföldköve volt. De nem gondolom, hogy hibáztam, nem gondolom, hogy ez az interjú szervilis lett volna, viszont pró és kontra kaptam hideget és meleget is érte.” Hozzátette: „Őszintén mondom, eszem ágában nem fordult volna meg, hogy ennek az interjúnak ilyen utóélete lesz. (…) Ha megnézed, a Partizán megvárta, hogy véget érjen a Varga Judittal készült Frizbi, és Török Gáborral elkezdték elemezni. Egy mondatban nem hangzott el, hogy ez egy szervilis interjú lett volna. Azt mondták, hogy itt kőkemény dolgok hangzottak el. És utána pár nappal később fordult a dolog, mintha ezer troll ellepett volna.” Fideszes klientúra és a melegek örökbefogadása Az interjúban többször kitértünk arra, hogy milyen kapcsolata van a műsorkészítőnek a politikával, azon belül is a regnáló hatalommal. Egy ponton az alábbi párbeszéd hangzik el: „– A Varga Judit-interjú változtatott valamit a reputációdon? – Összességében nem, de nagyon sokan kikiáltottak fideszesnek. Jó megfigyelők, eddig sem tagadtam, hogy a Fidesszel szimpatizálok. – Mondjuk, így még nem is mondtad ki szerintem. – Bár hozzáteszem, én nem vagyok párttag, nem kapok állami megbízásokat, nem kaptam állami megbízásokat, én gimnazistaként a Fideszre szavaztam, amikor először lehetőségem volt, mert baromi menőnek tartottuk, hogy farmerdzsekibe bemennek a parlamentbe, és ilyen coolhead arcok elkezdenek politizálni. És eddig a politika ilyen vaskalapos volt.” Utána ezt a fideszességet felülírta az életében Medgyessy Péter megjelenése, valamint a nevelt lányával, Tornóczky Anitával való kapcsolata. Medgyessyvel egyébként nagyon sok mindenben egyetértett, a mai napig fontos számára a véleménye, sokat szoktak beszélgetni, elképesztően tiszteli, majd megjegyezte: „Én azt gondolom, hogy ha Medgyessy Péter lenne Orbán Viktor kihívója, akkor Medgyessy Péterre szavaznék, de jelen pillanatban nem látok jobb alternatívát Orbán Viktornál. Ha lesz, akkor elgondolkodom.” „Még egyszer mondom, én nem tartozom a klientúrához, nem élek állami megrendelésekből, én teszem a dolgomat, és szimpatizálok bizonyos dolgokkal, de például azt is el szoktam mondani, hogy a melegekkel kapcsolatos dolgokban nem is az, hogy megengedőbb vagyok, hanem más véleményen vagyok. Én nem akadályoznám meg, hogy egy meleg pár örökbe fogadjon egy gyermeket. A gyereknek szeretetre van szüksége, és sokkal nagyobb szeretetet kap egy meleg párnál, mint állami gondozásban.” Amikor visszatérve a menőség kérdésére megkérdeztük, hogy ma is menőnek számít-e, ha valaki a kormánypártokkal szimpatizál, azt mondta, hogy „nem számít ma menőnek fideszesnek lenni, de nem gondolnám, hogy tiszásnak lenni menő”. Hozzátette, nem látja a Tisza ajánlatát, de igazából a Fideszét sem. „A Fidesz jelenlegi ajánlata kevés lesz 2026-hoz” – mondta. Arra a kérdésre, hogy a műsorkészítésnél hogyan kezeli a politikai preferenciáját, azt mondta, hogy „De az én felvállalt politikai preferenciám nem egyenlő Bayer Zsolt felvállalt politikai preferenciájával. Tehát azért ne tévedjünk. Én, még egyszer mondom, nem vagyok egy bigott fideszes, és nem voltam egy bigott MSZP-s sem.” Előtér és háttér Hajdú 2022 végén indította el saját YouTube-csatornáját, a Frizbi TV-t, amely mára 29,5 millió megtekintést ért el összesen, a projektet sikertörténetnek, élete egyik legjobb döntésének tartja. „Én azért örülök, hogy meg tudtam magamnak teremteni a függetlenséget a Frizbi TV YouTube-csatornával, mert nem függök Magyar Pétertől, nem függök – hirtelen akartam mondani az MSZP elnökét, de nem jut eszembe a neve –, nem függök Orbán Viktortól, szóval én nem vagyok kiszolgáltatva a politikának, és nem vagyok kiszolgáltatva egyetlenegy programigazgatónak sem.” Szerinte a streaming meg fogja ölni a kábeltévéket, utóbbiaknak pedig az lesz a vesztük, hogy elherdálják a pénzt, mert az online megmutatta, hogy sokkal kevesebb büdzséből is lehet talk show-kat készíteni. „Ha belegondolsz, hogy ti vagy mi mennyiből készítünk el egy talk show-t, és a televízióban mennyiből készítenek el, és milyen nézettséget érnek el (…), nem lehet kábelen olyan nézettséget csinálni, mint amit például a Telex podcastban csináltok. Ezek a műsorok, meg egy erősebb Frizbi vagy Beköltözve az RTL-nek és a TV2-nek a versenytársa.” 2024-ben a Hell Boxing Kingsnek volt a tévés producere, valamint PR- és social kampányokat csinálnak a Hellnek, „ez anyagilag engem kielégít, de az exhibicionizmusomat nem elégíti ki”. „Én ezekben a projektekben háttérben vagyok, viszont én szeretek előtérben lenni, és én ízig-vérig tévés vagyok (…) Ha a lineáris tévéknél nem volt szükség a munkámra, akkor megteremtettem a magam lehetőségét a streamingen” – mondta. Email Friderikusztól Számára két ikon létezik a szakmában, Vitray Tamás és Friderikusz Sándor. Utóbbival hullámzó volt a kapcsolata, mert elmondása szerint „mindig volt valami faszság”, amin Friderikusz megsértődött. 2015-ben Hajdú Péter volt az Összezárva Friderikusszal című műsor producere, az első két évad adásai egyre jobban működtek, azonban amikor már Hajdú szerint elő volt készítve a harmadik évad, akkor a TV2 tulajdonosváltása, valamint egy Tényekben lement anyag miatt Friderikusz otthagyta a műsort és a csatornát. Beszéltek telefonon, de Friderikusz hajthatatlan volt, utána megromlott a viszonyuk. „Szerintem ő az egyetlen ember az életemben, akivel elsodort minket egymástól a politika” – mondta korábbi szakmai példaképétől. „Az ő életében én nem jelentettem akkora szerepet, mint egy kis kezdő tévés, aki egy műsorának volt a producere, mint amit az jelentett az én életemben, hogy vele dolgozhattam.” „Nyilvánvalóan engem sokkal jobban megérint, hogy már egyáltalán nem vagyunk kapcsolatban. Még annyit elmondok, hogy amikor kineveztek vezérigazgatónak, akkor nekem írt egy emailt, és az nagyon rosszulesett. (…) Ettől függetlenül nem szabad elvenni, amit ő letett az asztalra, és az előtt igenis kalapot kell emelni.” Arra a kérdésre, hogy válaszolt-e az emailre, azt mondta, hogy „igen, hasonló stílusban”. Az interjúban számos témát érintettünk még, például hogy hogyan élte meg, hogy nem tudtak nyerni a trafikpályázaton; milyen jellegű volt az a tanácsadói munka, amit a TV2 elnökének, Vaszily Miklósnak végzett; milyennek látja a mai magyarországi médiaviszonyokat; tapasztalt-e cenzúrát a pályafutása során; ki lenne az a vendég, akinek a társaságában meghívná Puzsér Róbertet a Beköltözve című műsorába; hogyan éli meg, hogy hamarosan 50 éves lesz. A teljes interjút itt nézhetik meg:'
+                },
+                {'title': 'Megmutatjuk, hogyan tudja beállítani az Ügyfélkapu+-hoz az emailes kódot',
+                'author': 'Bolcsó Dániel',
+                'tags': ['TECHTUD'],
+                'facebook_activity': '1014',
+                'article_text': 'Az Ügyfélkapu megszűnése miatt január 16-ig mindenkinek váltania kell, ha továbbra is szeretne interneten hivatalos ügyeket intézni: a határidő után a sima felhasználónév–jelszó páros nem lesz elég, ehelyett vagy az Ügyfélkapu+, vagy a DÁP alkalmazás lesz majd használható a bejelentkezéshez az állami szolgáltatások oldalain. Aki az Ügyfélkapu+-t választja, eddig szüksége volt egy külön kódgeneráló alkalmazás használatára, kedd estétől azonban már emailben érkező kóddal is be tud jelentkezni. Ez a lehetőség nagy segítség lehet azoknak, akiknek nehézséget jelent egy kódgeneráló hitelesítő alkalmazás beállítása, vagy akik bármilyen más okból kivárták a váltással az emailes hitelesítés megérkezését. Fontos tudni azonban, hogy nemcsak az állíthatja be, hogy be tudjon lépni emailben kapott kóddal, akinek még mindig csak a sima Ügyfélkapuja van, hanem az is aki már beállított kódgenerátoros hitelesítő alkalmazást. Utóbbi esetben ezentúl párhuzamosan használható lesz az appos és az emailes bejelentkezés is. Mindkét esethez lépésenként bemutatjuk, hogyan állítható be az emailes hitelesítés az Ügyfélkapu+-hoz. Kezdjük azzal, ha valakinek még csak sima Ügyfélkapuja van: Menjen az ugyfelkapu.gov.hu oldalra, és kattintson a Bejelentkezés, majd a belépésnél az Ügyfélkapuval gombra, hogy bejelentkezzen a sima ügyfélkapus felhasználónév–jelszó párossal. A már ismert módon lépjen be a fiókjába: írja be a felhasználónevét és a jelszavát, majd kattintson a Bejelentkezés gombra. A fiókjában az első helyen található egy új gomb: Ügyfélkapu+ igénylés e-mailes kóddal: Kattintson rá! Írja be újra az ügyfélkapus jelszavát, majd kattintson a Megerősítő kód küldése gombra. Ekkor felugrik egy kis ablak, ahová az emailben kapott kódot be kell majd írnia. Ezen a ponton nyissa meg az emailfiókját, ahová a rendszer kiküldött egy levelet ezzel a tárggyal: Ügyfélkapu+ igénylés – Megerősítő kód. Ebből másolja ki a hat számjegyű kódot. (Tesztünk során nem votl ebből gond, de ha néhány perc után sem látja az emailt, érdemes lehet a spam mappában is megnézni, hátha véletlenül levélszemétnek nézte a levelezőrendszer.) Térjen vissza az ügyfélkapus oldalra, és másolja be a kódot a kis felugró ablakba. Erre a kódkéréstől számítva tíz perce van. Ha megvan, kattintson a Megerősítés gombra.Ezzel meg is van, innentől be van állítva az Ügyfélkapu+hoz az emailes azonosítás. Erről egy emailt is fog kapni Sikeres Ügyfélkapu+ igénylés tárggyal. Most pedig nézzük, mi a teendője annak, aki a már beállított kódgenerátoros belépés mellé szeretne emaileset is:Menjen az ugyfelkapu.gov.hu oldalra, és kattintson a Bejelentkezés, majd a belépésnél az Ügyfélkapu+ hitelesítő alkalmazással gombra, hogy bejelentkezzen a már beállított alkalmazás segítségével. A már ismert módon lépjen be a fiókjába: írja be a felhasználónevét és a jelszavát, majd a Bejelentkezés gomb után megjelenő Azonosító mezőbe írja be a hitelesítő alkalmazás által generált kódot. A fiókjában az első helyen található egy új gomb: Ügyfélkapu+ igénylés e-mailes kóddal: Kattintson rá! Írja be újra az ügyfélkapus jelszavát, majd kattintson a Megerősítő kód küldése gombra. Ekkor felugrik egy kis ablak, ahová az emailben kapott kódot be kell majd írnia. Ezen a ponton nyissa meg az emailfiókját, ahová a rendszer kiküldött egy levelet ezzel a tárggyal: Ügyfélkapu+ igénylés – Megerősítő kód. Ebből másolja ki a hat számjegyű kódot. (Tesztünk során nem votl ebből gond, de ha néhány perc után sem látja az emailt, érdemes lehet a spam mappában is megnézni, hátha véletlenül levélszemétnek nézte a levelezőrendszer.) Térjen vissza az ügyfélkapus oldalra, és másolja be a kódot a kis felugró ablakba. Erre a kódkéréstől számítva tíz perce van. Ha megvan, kattintson a Megerősítés gombra. Ezzel meg is van, innentől be van állítva az Ügyfélkapu+hoz az emailes azonosítás. Erről egy emailt is fog kapni Sikeres Ügyfélkapu+ igénylés tárggyal. Innentől ha bármilyen állami weboldalon szeretne bejelentkezni, három opciója lesz: DÁP mobilalkalmazás, Ügyfélkapu+ hitelesítő alkalmazással, Ügyfélkapu+ emailes kóddal. Bármelyiket választhatja azok közül, amelyeket már beállított, tehát ha korábban például kódgenerátoros alkalmazást is beállított az Ügyfélkapu+-fiókjához, akkor ezentúl akár felváltva is használja ezt, illetve az emailes megoldást, a kettő nem zárja ki egymást:'
                 }
 ]
 
@@ -53,18 +78,13 @@ def preprocess(word_list):
 topic_docs = defaultdict(list)
 for doc in article_data:
     if doc['tags']:  # Ensure tag exists
-        topic = doc['tags'][0]  # Use first tag as topic
         text = preprocess(hu(doc['article_text']))
-        topic_docs[topic].append(text)
+        for tag in doc['tags']:
+            topic_docs[tag].append(text)
 
-# Function to generate a fixed color function for a specific color
-def fixed_color_func(color):
-    def color_func(*args, **kwargs):
-        return color
-    return color_func
-
-# Defining a list of distinct colors
-colors = ['#FFA500', '#A9A9A9', '#FF6347', '#1E90FF', '#FF66CC', '#3CB371']
+# Store LDA models and dictionaries for classification
+lda_models = {}
+dictionaries = {}
 
 # Step 2: Run LDA for each topic and plot
 for topic, docs in topic_docs.items():
@@ -78,21 +98,57 @@ for topic, docs in topic_docs.items():
     # Train LDA
     num_topics = 6
     lda = LdaModel(corpus, num_topics=num_topics, id2word=dictionary, passes=10, random_state=42)
+    
+    # Store model and dictionary for later classification
+    lda_models[topic] = lda
+    dictionaries[topic] = dictionary
 
-    # Plot each topic's word clouds
+# Step 3: Subtopic classification, with counting articles and aggregating facebook activity
+subtopic_counts = defaultdict(lambda: Counter())
+subtopic_fb_activity = defaultdict(lambda: defaultdict(int))
+
+for article in article_data:
+    if article['tags']:
+        tokens = preprocess(hu(article['article_text']))
+        for topic in article['tags']:  # Loop through all tags
+            if topic in lda_models:
+                dictionary = dictionaries[topic]
+                bow = dictionary.doc2bow(tokens)
+                subtopic, _ = max(lda_models[topic][bow], key=lambda x: x[1])
+                subtopic_counts[topic][subtopic] += 1
+                # Sum up facebook activity (safely handle non-int)
+                try:
+                    subtopic_fb_activity[topic][subtopic] += int(article['facebook_activity'])
+                except ValueError:
+                    pass
+
+# Function to generate a fixed color function for a specific color
+def fixed_color_func(color):
+    def color_func(*args, **kwargs):
+        return color
+    return color_func
+
+# Defining a list of distinct colors
+colors = ['#FFA500', '#A9A9A9', '#FF6347', '#1E90FF', '#FF66CC', '#3CB371']
+
+# Step 4: Displaying word clouds with article classification
+for topic, lda in lda_models.items():
     fig, axes = plt.subplots(2, 3, figsize=(20, 12))
-    fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=16)
+    fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=18, y=0.98)
     axes = axes.flatten()
-
-    for i in range(num_topics):
+    
+    sorted_subtopics = sorted(range(6), key=lambda i: subtopic_fb_activity[topic][i], reverse=True)
+    
+    for idx, i in enumerate(sorted_subtopics):
         terms = lda.show_topic(i, topn=30)
         word_freq = {term: weight for term, weight in terms}
-        color_func = fixed_color_func(colors[i % len(colors)])
+        color_func = fixed_color_func(colors[idx % len(colors)])
         wc = WordCloud(width=500, height=400, background_color='white', color_func=color_func).generate_from_frequencies(word_freq)
-
-        axes[i].imshow(wc, interpolation='bilinear')
-        axes[i].set_title(f'Subtopic {i+1}', fontsize=14)
-        axes[i].axis('off')
-
-    plt.subplots_adjust(wspace=0.4, hspace=0.4, top=0.9)
+        
+        axes[idx].imshow(wc, interpolation='bilinear')
+        title_text = (rf"$\bf{{Subtopic\ {i+1}}}$" f"\n(Facebook activity: {subtopic_fb_activity[topic][i]})" f"\n({subtopic_counts[topic][i]} articles)")
+        axes[idx].set_title(title_text, fontsize=12, fontweight='normal', multialignment='center')
+        axes[idx].axis('off')
+    
+    plt.subplots_adjust(wspace=0.4, hspace=0.4, top=0.85)
     plt.show()
