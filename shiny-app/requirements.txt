@@ -1,3 +1,4 @@
 shiny
 seaborn
 pandas
+numpy==1.26.4
