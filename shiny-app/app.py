@@ -1,6 +1,7 @@
 # Import data from shared.py
-from shared import df
+from article_import import article_data
 
+import pandas as pd
 from shiny.express import input, render, ui
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
@@ -16,7 +17,9 @@ nlp=Hungarian()
 hu = spacy.load('hu_core_news_lg')
 stopwords = hu.Defaults.stop_words
 
-all_tags = set(tag for tags in df["tags"] if isinstance(tags, list) for tag in tags)
+article_data = pd.DataFrame(article_data)
+
+all_tags = set(tag for tags in article_data["tags"] if isinstance(tags, list) for tag in tags)
 
 ui.page_opts(title="Word Cloud for News Articles")
 
@@ -34,7 +37,7 @@ def preprocess(word_list):
     return result
 
 def get_filtered_text(topic):
-        filtered_texts = df[df["tags"].apply(lambda x: topic in x if isinstance(x, list) else False)]["article_text"].tolist()
+        filtered_texts = article_data[article_data["tags"].apply(lambda x: topic in x if isinstance(x, list) else False)]["article_text"].tolist()
         text = " ".join(filtered_texts)
         return preprocess(hu(text))
 
