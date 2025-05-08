@@ -1,3 +1,6 @@
+import io
+import math
+
 import streamlit as st
 import json
 from pathlib import Path
@@ -150,7 +153,9 @@ if st.button("Run Topic Modeling"):
 
         # Step 4: Displaying word clouds with article classification
         for topic, lda in lda_models.items():
-            fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+            cols = min(3, num_subtopics)
+            rows = math.ceil(num_subtopics / cols)
+            fig, axes = plt.subplots(rows, cols, figsize=(20, 12))
             fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=18, y=0.98)
             axes = axes.flatten()
 
@@ -166,6 +171,21 @@ if st.button("Run Topic Modeling"):
                 title_text = (rf"$\bf{{Subtopic\ {i+1}}}$" f"\n(Facebook activity: {subtopic_fb_activity[topic][i]})" f"\n({subtopic_counts[topic][i]} articles)")
                 axes[idx].set_title(title_text, fontsize=12, fontweight='normal', multialignment='center')
                 axes[idx].axis('off')
+
+            if f"{topic}_plot" not in st.session_state:
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png', bbox_inches='tight')
+                buf.seek(0)
+                st.session_state[f"{topic}_plot"] = buf
+
+            # Provide a download button for the plot
+            st.download_button(
+                label=f"Download {topic}",
+                data=st.session_state[f"{topic}_plot"],
+                file_name=f"{topic}_wordcloud.png",
+                mime="image/png"
+            )
+
 
             # Display the combined image in Streamlit
             st.pyplot(fig)
