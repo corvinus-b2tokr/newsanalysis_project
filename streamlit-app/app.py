@@ -78,7 +78,8 @@ if st.button("Run Topic Modeling"):
         progress_bar = st.progress(0)  # Initialize progress bar
         progress_step = 1 / (len(filtered_articles) + 3)  # Calculate step size
 
-        st.write("Preprocessing...")
+        text_placeholder = st.empty()
+        text_placeholder.write("Preprocessing...")
         topic_docs = defaultdict(list)
         for idx, doc in enumerate(filtered_articles):
             if doc['tags']:  # Ensuring tag exists
@@ -113,10 +114,13 @@ if st.button("Run Topic Modeling"):
             dictionaries[topic] = dictionary
             progress_bar.progress(min((len(filtered_articles) + idx + 1) * progress_step, 1.0))  # Update progress
 
+        progress_bar.empty()
+        text_placeholder.empty()
+
         # Step 3: Subtopic classification, with counting articles and aggregating facebook activity
-        st.write("Subtopic classification...")
-        classification_progress = st.progress(0)  # Initialize classification progress bar
+        progress_bar.progress(0)  # Initialize classification progress bar
         classification_step = 1 / len(filtered_articles)  # Calculate step size for classification
+        text_placeholder.write("Subtopic classification...")
 
         subtopic_counts = defaultdict(lambda: Counter())
         subtopic_fb_activity = defaultdict(lambda: defaultdict(int))
@@ -135,9 +139,10 @@ if st.button("Run Topic Modeling"):
                             subtopic_fb_activity[topic][subtopic] += int(article['facebook_activity'])
                         except ValueError:
                             pass
-            classification_progress.progress(min((idx + 1) * classification_step, 1.0))  # Update classification progress
+            progress_bar.progress(min((idx + 1) * classification_step, 1.0))  # Update classification progress
 
-        classification_progress.progress(1.0)
+        progress_bar.empty()
+        text_placeholder.empty()
         st.success("Modeling completed!")
 
         # Defining a list of distinct colors
@@ -165,7 +170,6 @@ if st.button("Run Topic Modeling"):
             # Display the combined image in Streamlit
             st.pyplot(fig)
             plt.close(fig)
-        progress_bar.progress(1.0)  # Complete progress
 
 # Count articles by date
 filtered_dates = [
