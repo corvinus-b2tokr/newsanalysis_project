@@ -72,8 +72,8 @@ if len(filtered_articles) > 0:
 
 # Run button
 if st.button("Run Topic Modeling"):
-    if not filtered_articles:
-        st.warning("No articles found for the selected criteria.")
+    if len(filtered_articles) < 10:
+        st.warning("At least 10 articles must be selected to run topic modeling.")
     else:
         print("Starting preprocessing...")
         topic_docs = defaultdict(list)
@@ -83,11 +83,14 @@ if st.button("Run Topic Modeling"):
                 for tag in doc['tags']:
                     topic_docs[tag].append(text)
 
-
         print("Starting LDA modeling...")
         # Run LDA for each topic
         lda_models = {}
         dictionaries = {}
+
+        # Determine the number of subtopics
+        num_articles = len(filtered_articles)
+        num_subtopics = min(6, max(2, num_articles // 10))  # Min 2 subtopic, max 6 or 10% of articles
 
         for topic, docs in topic_docs.items():
             if topic not in selected_tags:
@@ -100,8 +103,7 @@ if st.button("Run Topic Modeling"):
             corpus = [dictionary.doc2bow(doc) for doc in docs]
 
             # Training LDA
-            num_topics = 6
-            lda = LdaModel(corpus, num_topics=num_topics, id2word=dictionary, passes=10, random_state=42)
+            lda = LdaModel(corpus, num_topics=num_subtopics, id2word=dictionary, passes=10, random_state=42)
 
             # Storing model and dictionary for later classification
             lda_models[topic] = lda
@@ -110,7 +112,6 @@ if st.button("Run Topic Modeling"):
         # Step 3: Subtopic classification, with counting articles and aggregating facebook activity
         subtopic_counts = defaultdict(lambda: Counter())
         subtopic_fb_activity = defaultdict(lambda: defaultdict(int))
-
 
         print("Starting subtopic classification...")
 
@@ -138,7 +139,7 @@ if st.button("Run Topic Modeling"):
             fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=18, y=0.98)
             axes = axes.flatten()
 
-            sorted_subtopics = sorted(range(6), key=lambda i: subtopic_fb_activity[topic][i], reverse=True)
+            sorted_subtopics = sorted(range(num_subtopics), key=lambda i: subtopic_fb_activity[topic][i], reverse=True)
 
             for idx, i in enumerate(sorted_subtopics):
                 terms = lda.show_topic(i, topn=30)
@@ -155,9 +156,7 @@ if st.button("Run Topic Modeling"):
             st.pyplot(fig)
             plt.close(fig)
 
-
         print("Process completed.")
-
 
 # Count articles by date
 filtered_dates = [
