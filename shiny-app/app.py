@@ -13,18 +13,21 @@ import spacy
 from spacy.lang.hu.stop_words import STOP_WORDS
 from spacy.lang.hu import Hungarian
 nlp=Hungarian()
+#nlp.max_length = 2000000
 
 hu = spacy.load('hu_core_news_lg')
 stopwords = hu.Defaults.stop_words
 
 article_data = pd.DataFrame(article_data)
 
-all_tags = set(tag for tags in article_data["tags"] if isinstance(tags, list) for tag in tags)
+all_tags = sorted(set(tag for tags in article_data["tags"] if isinstance(tags, list) for tag in tags))
+all_authors = sorted(article_data["author"].dropna().unique().tolist())
 
 ui.page_opts(title="Word Cloud for News Articles")
 
 with ui.sidebar():
-    ui.input_select("topic", "Choose Topic", choices=list(all_tags), selected=list(all_tags)[0]),
+    ui.input_select("topic", "Choose Category", choices=list(all_tags), selected=list(all_tags)[0])
+    ui.input_select("author", "Choose Author", choices=["-- All --"] + all_authors, selected="-- All --")
     ui.input_slider("max_words", "Maximum Words:", min=10, max=200, value=100)
 
 # Preprocessing function
@@ -36,15 +39,22 @@ def preprocess(word_list):
             result.append(token)
     return result
 
-def get_filtered_text(topic):
-        filtered_texts = article_data[article_data["tags"].apply(lambda x: topic in x if isinstance(x, list) else False)]["article_text"].tolist()
-        text = " ".join(filtered_texts)
-        return preprocess(hu(text))
+def get_filtered_text(topic, author):
+    filtered_texts = article_data[article_data["tags"].apply(lambda x: topic in x if isinstance(x, list) else False)]
+    
+    if author != "-- All --":
+        filtered_texts = filtered_texts[filtered_texts["author"] == author]
+
+    filtered_texts_list = filtered_texts["article_text"].tolist()
+    text = " ".join(filtered_texts_list)
+    return preprocess(hu(text)), filtered_texts
 
 @render.ui
 def wordcloud():
     topic = input.topic()
-    text = get_filtered_text(topic)
+    author = input.author()    
+    text, filtered_texts = get_filtered_text(topic, author)
+    
     if not text:
         return "No words to display."
     
@@ -60,5 +70,17 @@ def wordcloud():
     buf.seek(0)
     img_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
     buf.close()
+
+    total_facebook_activity = filtered_texts["facebook_activity"].astype('int64').sum()
+    article_count = len(filtered_texts)
         
-    return ui.tags.img(src="data:image/png;base64," + img_base64, style="width:100%")
+    metrics_style = "font-size: 1.2em; color: #3B4CCA; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: bold; display: inline-block; margin-right: 20px;"
+
+    return ui.div(
+        ui.div(
+            ui.tags.span(f"Total Facebook Activity: {total_facebook_activity}", style=metrics_style),
+            ui.tags.span(f"Number of Articles: {article_count}", style=metrics_style),
+            style="margin-bottom: 1em;"
+        ),
+        ui.tags.img(src="data:image/png;base64," + img_base64, style="width:100%")
+    )
