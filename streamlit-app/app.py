@@ -75,24 +75,27 @@ if st.button("Run Topic Modeling"):
     if len(filtered_articles) < 10:
         st.warning("At least 10 articles must be selected to run topic modeling.")
     else:
-        print("Starting preprocessing...")
+        progress_bar = st.progress(0)  # Initialize progress bar
+        progress_step = 1 / (len(filtered_articles) + 3)  # Calculate step size
+
+        st.write("Preprocessing...")
         topic_docs = defaultdict(list)
-        for doc in filtered_articles:
+        for idx, doc in enumerate(filtered_articles):
             if doc['tags']:  # Ensuring tag exists
                 text = preprocess(hu(doc['article_text']))
                 for tag in doc['tags']:
                     topic_docs[tag].append(text)
+            progress_bar.progress(min((idx + 1) * progress_step, 1.0))  # Update progress
 
-        print("Starting LDA modeling...")
         # Run LDA for each topic
         lda_models = {}
         dictionaries = {}
 
         # Determine the number of subtopics
         num_articles = len(filtered_articles)
-        num_subtopics = min(6, max(2, num_articles // 10))  # Min 2 subtopic, max 6 or 10% of articles
+        num_subtopics = min(6, max(2, num_articles // 10))  # Min 2 subtopics, max 6 or 10% of articles
 
-        for topic, docs in topic_docs.items():
+        for idx, (topic, docs) in enumerate(topic_docs.items()):
             if topic not in selected_tags:
                 continue
             if len(docs) < 2:
@@ -108,17 +111,20 @@ if st.button("Run Topic Modeling"):
             # Storing model and dictionary for later classification
             lda_models[topic] = lda
             dictionaries[topic] = dictionary
+            progress_bar.progress(min((len(filtered_articles) + idx + 1) * progress_step, 1.0))  # Update progress
 
         # Step 3: Subtopic classification, with counting articles and aggregating facebook activity
+        st.write("Subtopic classification...")
+        classification_progress = st.progress(0)  # Initialize classification progress bar
+        classification_step = 1 / len(filtered_articles)  # Calculate step size for classification
+
         subtopic_counts = defaultdict(lambda: Counter())
         subtopic_fb_activity = defaultdict(lambda: defaultdict(int))
 
-        print("Starting subtopic classification...")
-
-        for article in filtered_articles:
+        for idx, article in enumerate(filtered_articles):
             if article['tags']:
                 tokens = preprocess(hu(article['article_text']))
-                for topic in article['tags']:  # Looping through all tags
+                for topic in article['tags']:
                     if topic in lda_models:
                         dictionary = dictionaries[topic]
                         bow = dictionary.doc2bow(tokens)
@@ -129,6 +135,10 @@ if st.button("Run Topic Modeling"):
                             subtopic_fb_activity[topic][subtopic] += int(article['facebook_activity'])
                         except ValueError:
                             pass
+            classification_progress.progress(min((idx + 1) * classification_step, 1.0))  # Update classification progress
+
+        classification_progress.progress(1.0)
+        st.success("Modeling completed!")
 
         # Defining a list of distinct colors
         colors = ['#FFA500', '#A9A9A9', '#FF6347', '#1E90FF', '#FF66CC', '#3CB371']
@@ -155,8 +165,7 @@ if st.button("Run Topic Modeling"):
             # Display the combined image in Streamlit
             st.pyplot(fig)
             plt.close(fig)
-
-        print("Process completed.")
+        progress_bar.progress(1.0)  # Complete progress
 
 # Count articles by date
 filtered_dates = [
