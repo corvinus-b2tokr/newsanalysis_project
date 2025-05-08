@@ -30,20 +30,32 @@ def preprocess(word_list):
             result.append(token)
     return result
 
+selected_tags = ["AFTER", "ZACC"]
+filtered_articles = [
+    article for article in article_data
+    if any(tag in article.get('tags', []) for tag in selected_tags)
+]
+print(len(filtered_articles))
+
+print("Starting preprocessing...")
 # Step 1: Grouping tokenized texts by topic (tag)
 topic_docs = defaultdict(list)
-for doc in article_data:
+for doc in filtered_articles:
     if doc['tags']:  # Ensuring tag exists
         text = preprocess(hu(doc['article_text']))
         for tag in doc['tags']:
             topic_docs[tag].append(text)
+print(topic_docs)
 
 # Storing LDA models and dictionaries for classification
 lda_models = {}
 dictionaries = {}
 
+print("Starting LDA modeling...")
 # Step 2: Running LDA for each topic
 for topic, docs in topic_docs.items():
+    if topic not in selected_tags:
+        continue
     if len(docs) < 2:
         continue  # Not enough data for LDA
 
@@ -54,7 +66,7 @@ for topic, docs in topic_docs.items():
     # Training LDA
     num_topics = 6
     lda = LdaModel(corpus, num_topics=num_topics, id2word=dictionary, passes=10, random_state=42)
-    
+
     # Storing model and dictionary for later classification
     lda_models[topic] = lda
     dictionaries[topic] = dictionary
@@ -63,7 +75,9 @@ for topic, docs in topic_docs.items():
 subtopic_counts = defaultdict(lambda: Counter())
 subtopic_fb_activity = defaultdict(lambda: defaultdict(int))
 
-for article in article_data:
+print("Starting subtopic classification...")
+
+for article in filtered_articles:
     if article['tags']:
         tokens = preprocess(hu(article['article_text']))
         for topic in article['tags']:  # Looping through all tags
@@ -92,19 +106,19 @@ for topic, lda in lda_models.items():
     fig, axes = plt.subplots(2, 3, figsize=(20, 12))
     fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=18, y=0.98)
     axes = axes.flatten()
-    
+
     sorted_subtopics = sorted(range(6), key=lambda i: subtopic_fb_activity[topic][i], reverse=True)
-    
+
     for idx, i in enumerate(sorted_subtopics):
         terms = lda.show_topic(i, topn=30)
         word_freq = {term: weight for term, weight in terms}
         color_func = fixed_color_func(colors[idx % len(colors)])
         wc = WordCloud(width=500, height=400, background_color='white', color_func=color_func).generate_from_frequencies(word_freq)
-        
+
         axes[idx].imshow(wc, interpolation='bilinear')
         title_text = (rf"$\bf{{Subtopic\ {i+1}}}$" f"\n(Facebook activity: {subtopic_fb_activity[topic][i]})" f"\n({subtopic_counts[topic][i]} articles)")
         axes[idx].set_title(title_text, fontsize=12, fontweight='normal', multialignment='center')
         axes[idx].axis('off')
-    
+
     plt.subplots_adjust(wspace=0.4, hspace=0.4, top=0.85)
     plt.show()

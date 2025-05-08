@@ -1,0 +1,9 @@
+gensim==4.3.3
+numpy==1.26.4
+scipy==1.13.1
+matplotlib==3.10.1
+pandas==2.2.3
+shiny==1.4.0
+wordcloud==1.9.4
+spacy==3.8.5
+streamlit==1.45.0
