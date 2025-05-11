@@ -104,6 +104,7 @@ if st.button("Run Topic Modeling"):
         # Determine the number of subtopics
         num_articles = len(filtered_articles)
         num_subtopics = min(6, max(2, num_articles // 10))  # Min 2 subtopics, max 6 or 10% of articles
+        st.session_state['num_subtopics'] = num_subtopics
 
         for idx, (topic, docs) in enumerate(topic_docs.items()):
             if topic not in selected_tags:
@@ -150,52 +151,62 @@ if st.button("Run Topic Modeling"):
                             pass
             progress_bar.progress(min((idx + 1) * classification_step, 1.0))  # Update classification progress
 
+        st.session_state['lda_models'] = lda_models
+        st.session_state['subtopic_fb_activity'] = subtopic_fb_activity
+        st.session_state['subtopic_counts'] = subtopic_counts
+
         progress_bar.empty()
         text_placeholder.empty()
         st.success("Modeling completed!")
 
-        # Defining a list of distinct colors
-        colors = ['#FFA500', '#A9A9A9', '#FF6347', '#1E90FF', '#FF66CC', '#3CB371']
+# Step 4: Displaying word clouds with article classification
+if 'lda_models' in st.session_state:
+    # Defining a list of distinct colors
+    colors = ['#FFA500', '#A9A9A9', '#FF6347', '#1E90FF', '#FF66CC', '#3CB371']
 
-        # Step 4: Displaying word clouds with article classification
-        for topic, lda in lda_models.items():
-            cols = min(3, num_subtopics)
-            rows = math.ceil(num_subtopics / cols)
-            fig, axes = plt.subplots(rows, cols, figsize=(20, 12))
-            fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=18, y=0.98)
-            axes = axes.flatten()
+    lda_models = st.session_state['lda_models']
+    num_subtopics = st.session_state['num_subtopics']
+    subtopic_fb_activity = st.session_state['subtopic_fb_activity']
+    subtopic_counts = st.session_state['subtopic_counts']
 
-            sorted_subtopics = sorted(range(num_subtopics), key=lambda i: subtopic_fb_activity[topic][i], reverse=True)
+    for topic, lda in lda_models.items():
+        cols = min(3, num_subtopics)
+        rows = math.ceil(num_subtopics / cols)
+        fig, axes = plt.subplots(rows, cols, figsize=(20, 12))
+        fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=18, y=0.98)
+        axes = axes.flatten()
 
-            for idx, i in enumerate(sorted_subtopics):
-                terms = lda.show_topic(i, topn=30)
-                word_freq = {term: weight for term, weight in terms}
-                color_func = fixed_color_func(colors[idx % len(colors)])
-                wc = WordCloud(width=500, height=400, background_color='white', color_func=color_func).generate_from_frequencies(word_freq)
+        sorted_subtopics = sorted(range(num_subtopics), key=lambda i: subtopic_fb_activity[topic][i], reverse=True)
 
-                axes[idx].imshow(wc, interpolation='bilinear')
-                title_text = (rf"$\bf{{Subtopic\ {i+1}}}$" f"\n(Facebook activity: {subtopic_fb_activity[topic][i]})" f"\n({subtopic_counts[topic][i]} articles)")
-                axes[idx].set_title(title_text, fontsize=12, fontweight='normal', multialignment='center')
-                axes[idx].axis('off')
+        for idx, i in enumerate(sorted_subtopics):
+            terms = lda.show_topic(i, topn=30)
+            word_freq = {term: weight for term, weight in terms}
+            color_func = fixed_color_func(colors[idx % len(colors)])
+            wc = WordCloud(width=500, height=400, background_color='white', color_func=color_func).generate_from_frequencies(word_freq)
 
-            if f"{topic}_plot" not in st.session_state:
-                buf = io.BytesIO()
-                plt.savefig(buf, format='png', bbox_inches='tight')
-                buf.seek(0)
-                st.session_state[f"{topic}_plot"] = buf
+            axes[idx].imshow(wc, interpolation='bilinear')
+            title_text = (rf"$\bf{{Subtopic\ {i+1}}}$" f"\n(Facebook activity: {subtopic_fb_activity[topic][i]})" f"\n({subtopic_counts[topic][i]} articles)")
+            axes[idx].set_title(title_text, fontsize=12, fontweight='normal', multialignment='center')
+            axes[idx].axis('off')
 
-            # Provide a download button for the plot
-            st.download_button(
-                label=f"Download {topic}",
-                data=st.session_state[f"{topic}_plot"],
-                file_name=f"{topic}_wordcloud.png",
-                mime="image/png"
-            )
+        if f"{topic}_plot" not in st.session_state:
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight')
+            buf.seek(0)
+            st.session_state[f"{topic}_plot"] = buf
+
+        # Provide a download button for the plot
+        st.download_button(
+            label=f"Download {topic}",
+            data=st.session_state[f"{topic}_plot"],
+            file_name=f"{topic}_wordcloud.png",
+            mime="image/png"
+        )
 
 
-            # Display the combined image in Streamlit
-            st.pyplot(fig)
-            plt.close(fig)
+        # Display the combined image in Streamlit
+        st.pyplot(fig)
+        plt.close(fig)
 
 # Count articles by date
 filtered_dates = [
