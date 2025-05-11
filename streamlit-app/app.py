@@ -185,7 +185,9 @@ if 'lda_models' in st.session_state:
             wc = WordCloud(width=500, height=400, background_color='white', color_func=color_func).generate_from_frequencies(word_freq)
 
             axes[idx].imshow(wc, interpolation='bilinear')
-            title_text = (rf"$\bf{{Subtopic\ {i+1}}}$" f"\n(Facebook activity: {subtopic_fb_activity[topic][i]})" f"\n({subtopic_counts[topic][i]} articles)")
+
+            average_fb_activity = 0 if subtopic_counts[topic][i] == 0 else subtopic_fb_activity[topic][i] / subtopic_counts[topic][i]
+            title_text = (rf"$\bf{{Subtopic\ {i+1}}}$" f"\nAverage Facebook activity: {average_fb_activity:.0f}" f"\n({subtopic_counts[topic][i]} articles)")
             axes[idx].set_title(title_text, fontsize=12, fontweight='normal', multialignment='center')
             axes[idx].axis('off')
 
@@ -231,11 +233,59 @@ if len(filtered_articles) > 0:
     st.bar_chart(date_df)
 
     tag_counts = Counter(tag for article in filtered_articles for tag in article.get('tags', []) if tag in selected_tags)
-    # Convert to DataFrame and sort by count
+
     tag_df = pd.DataFrame.from_dict(tag_counts, orient='index', columns=['Article Count'])
     tag_df.index.name = 'Tag'
     tag_df = tag_df.sort_values(by='Article Count', ascending=False)
 
-    # Display the bar chart in Streamlit
     st.subheader("Number of Articles per Category")
     st.bar_chart(tag_df)
+
+    # Calculate total and average Facebook activity per author
+    author_fb_activity = defaultdict(list)
+
+    for article in filtered_articles:
+        try:
+            fb_activity = int(article['facebook_activity'])
+            author_fb_activity[article['author']].append(fb_activity)
+        except ValueError:
+            continue  # Skip if Facebook activity is not a valid integer
+
+    # Calculate total and average Facebook activity for each author
+    author_stats = {
+        author: {
+            'Total': sum(activities),
+            'Average': sum(activities) / len(activities)
+        }
+        for author, activities in author_fb_activity.items()
+    }
+
+    # Sort authors by total Facebook activity and select the top 10
+    top_authors = sorted(author_stats.items(), key=lambda x: x[1]['Total'], reverse=True)[:10]
+
+    # Convert to DataFrame for visualization
+    author_df = pd.DataFrame([
+        {'Author': author, 'Total Facebook Activity': stats['Total'], 'Average Facebook Activity': stats['Average']}
+        for author, stats in top_authors
+    ])
+
+    # Plot the bar chart for Average Facebook Activity
+    st.subheader("Top 10 Authors by Average Facebook Activity")
+    fig2, ax2 = plt.subplots(figsize=(12, 6))
+    author_df = author_df.sort_values(by='Average Facebook Activity', ascending=False)
+    ax2.bar(author_df['Author'], author_df['Average Facebook Activity'], color='skyblue')
+    ax2.set_ylabel('Average Facebook Activity')
+    ax2.set_xlabel('Author')
+    ax2.tick_params(axis='x', rotation=45)
+    st.pyplot(fig2)
+
+    # Plot the bar chart for Total Facebook Activity
+    st.subheader("Top 10 Authors by Total Facebook Activity")
+    fig1, ax1 = plt.subplots(figsize=(12, 6))
+    author_df = author_df.sort_values(by='Total Facebook Activity', ascending=False)
+    ax1.bar(author_df['Author'], author_df['Total Facebook Activity'], color='orange')
+    ax1.set_ylabel('Total Facebook Activity')
+    ax1.set_xlabel('Author')
+    ax1.tick_params(axis='x', rotation=45)
+    st.pyplot(fig1)
+
