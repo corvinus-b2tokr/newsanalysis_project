@@ -50,8 +50,14 @@ min_date = datetime.strptime(min(article['date'] for article in article_data), "
 max_date = datetime.strptime(max(article['date'] for article in article_data), "%Y-%m-%d").date()
 
 # Date range filter
-start_date, end_date = st.date_input("Select Date Range", [min_date, max_date])
+start_date, end_date = min_date, max_date
 
+
+date_range = st.date_input("Select Date Range", [min_date, max_date])
+if len(date_range) != 2:
+    st.warning("Please select both a start and an end date.")
+else:
+    start_date, end_date = date_range
 
 
 # Tag selection
