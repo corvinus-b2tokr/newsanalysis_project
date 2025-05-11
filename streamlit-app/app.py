@@ -100,17 +100,18 @@ if st.button("Run Topic Modeling"):
         # Run LDA for each topic
         lda_models = {}
         dictionaries = {}
-
-        # Determine the number of subtopics
-        num_articles = len(filtered_articles)
-        num_subtopics = min(6, max(2, num_articles // 10))  # Min 2 subtopics, max 6 or 10% of articles
-        st.session_state['num_subtopics'] = num_subtopics
+        num_subtopics_per_category = {}
 
         for idx, (topic, docs) in enumerate(topic_docs.items()):
             if topic not in selected_tags:
                 continue
             if len(docs) < 2:
                 continue  # Not enough data for LDA
+
+            # Determine the number of subtopics for this category
+            num_articles_in_category = len(docs)
+            num_subtopics = min(6, max(2, num_articles_in_category // 10))  # Min 2 subtopics, max 6 or 10% of articles
+            num_subtopics_per_category[topic] = num_subtopics
 
             # Preparing corpus
             dictionary = Dictionary(docs)
@@ -154,6 +155,7 @@ if st.button("Run Topic Modeling"):
         st.session_state['lda_models'] = lda_models
         st.session_state['subtopic_fb_activity'] = subtopic_fb_activity
         st.session_state['subtopic_counts'] = subtopic_counts
+        st.session_state['num_subtopics_per_category'] = num_subtopics_per_category
 
         progress_bar.empty()
         text_placeholder.empty()
@@ -165,11 +167,12 @@ if 'lda_models' in st.session_state:
     colors = ['#FFA500', '#A9A9A9', '#FF6347', '#1E90FF', '#FF66CC', '#3CB371']
 
     lda_models = st.session_state['lda_models']
-    num_subtopics = st.session_state['num_subtopics']
+    num_subtopics_per_category = st.session_state['num_subtopics_per_category']
     subtopic_fb_activity = st.session_state['subtopic_fb_activity']
     subtopic_counts = st.session_state['subtopic_counts']
 
     for topic, lda in lda_models.items():
+        num_subtopics = num_subtopics_per_category[topic]
         cols = min(3, num_subtopics)
         rows = math.ceil(num_subtopics / cols)
         fig, axes = plt.subplots(rows, cols, figsize=(20, 12))
