@@ -179,7 +179,15 @@ if 'lda_models' in st.session_state:
         fig.suptitle(f"LDA Word Clouds for '{topic}'", fontsize=18, y=0.98)
         axes = axes.flatten()
 
-        sorted_subtopics = sorted(range(num_subtopics), key=lambda i: subtopic_fb_activity[topic][i], reverse=True)
+        # Sort subtopics by average Facebook activity
+        sorted_subtopics = sorted(
+            range(num_subtopics),
+            key=lambda i: (
+                0 if subtopic_counts[topic][i] == 0
+                else subtopic_fb_activity[topic][i] / subtopic_counts[topic][i]
+            ),
+            reverse=True
+        )
 
         for idx, i in enumerate(sorted_subtopics):
             terms = lda.show_topic(i, topn=30)
@@ -193,6 +201,11 @@ if 'lda_models' in st.session_state:
             title_text = (rf"$\bf{{Subtopic\ {i+1}}}$" f"\nAverage Facebook activity: {average_fb_activity:.0f}" f"\n({subtopic_counts[topic][i]} articles)")
             axes[idx].set_title(title_text, fontsize=12, fontweight='normal', multialignment='center')
             axes[idx].axis('off')
+
+        # Hide any remaining empty plots
+        for j in range(len(axes)):
+            if j >= num_subtopics:
+                axes[j].axis('off')
 
         if f"{topic}_plot" not in st.session_state:
             buf = io.BytesIO()
